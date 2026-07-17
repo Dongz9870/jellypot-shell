@@ -46,7 +46,7 @@
     const itemTypePromises = new Map();
 
     function isItemId(value) {
-        return /^[a-fA-F0-9-]{16,}$/.test(value ?? "");
+        return /^[a-fA-F0-9-]{16,64}$/.test(value ?? "");
     }
 
     function isVisible(element) {

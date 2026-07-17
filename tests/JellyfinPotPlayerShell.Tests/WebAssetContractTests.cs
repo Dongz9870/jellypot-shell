@@ -41,15 +41,20 @@ public sealed class WebAssetContractTests
     }
 
     [Fact]
-    public void M2Assets_DoNotImplementWebMessagesOrPlayerLaunch()
+    public void M3Assets_SendOnlyTheExpectedItemIdMessage()
     {
         var scripts = string.Join(
             Environment.NewLine,
             ReadAsset("jellyfin-web-adapter.js"),
             ReadAsset("inject.js"));
 
-        Assert.DoesNotContain("postMessage", scripts, StringComparison.Ordinal);
+        Assert.Contains("postMessage", scripts, StringComparison.Ordinal);
+        Assert.Contains("type: \"playWithPotPlayer\"", scripts, StringComparison.Ordinal);
+        Assert.Contains("itemId: context.itemId", scripts, StringComparison.Ordinal);
         Assert.DoesNotContain("AccessToken", scripts, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("executablePath", scripts, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("pageUrl", scripts, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("serverAddress", scripts, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("ProcessStartInfo", scripts, StringComparison.Ordinal);
     }
 

@@ -31,8 +31,10 @@ public partial class MainWindow : Window
 
         InitializeComponent();
         Loaded += MainWindow_Loaded;
+        Closed += MainWindow_Closed;
         Browser.NavigationStarting += Browser_NavigationStarting;
         Browser.NavigationCompleted += Browser_NavigationCompleted;
+        _webViewHostService.PlayRequested += WebViewHostService_PlayRequested;
     }
 
     private async void MainWindow_Loaded(object sender, RoutedEventArgs e)
@@ -106,6 +108,24 @@ public partial class MainWindow : Window
         {
             NavigateToConfiguredServer();
         }
+    }
+
+    private void WebViewHostService_PlayRequested(
+        object? sender,
+        PlayRequestReceivedEventArgs eventArgs)
+    {
+        StatusText.Text = "C# 已收到 Jellyfin 条目 ID";
+        MessageBox.Show(
+            this,
+            $"C# 已收到 Jellyfin 条目 ID：\n\n{eventArgs.ItemId}\n\nM3 暂不获取媒体路径，也不会启动 PotPlayer。",
+            "Web/C# 通信测试",
+            MessageBoxButton.OK,
+            MessageBoxImage.Information);
+    }
+
+    private void MainWindow_Closed(object? sender, EventArgs e)
+    {
+        _webViewHostService.PlayRequested -= WebViewHostService_PlayRequested;
     }
 
     private void ShowStartupError(string message)

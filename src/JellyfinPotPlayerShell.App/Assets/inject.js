@@ -31,6 +31,13 @@
         const label = document.createElement("span");
         label.textContent = "PotPlayer 播放";
 
+        button.addEventListener("click", () => {
+            window.chrome.webview.postMessage({
+                type: "playWithPotPlayer",
+                itemId: context.itemId
+            });
+        });
+
         button.append(icon, label);
         return button;
     }
