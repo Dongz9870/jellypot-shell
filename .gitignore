@@ -1,0 +1,12 @@
+bin/
+obj/
+.vs/
+.vscode/
+TestResults/
+*.user
+*.suo
+*.log
+docs/DEVELOPMENT_MANUAL.md
+AGENTS.md
+src/JellyfinPotPlayerShell.App/appsettings.json
+config/appsettings.example.json

@@ -1,0 +1,27 @@
+#jpps-potplayer-button {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 0.45em !important;
+    background: #f5c400 !important;
+    color: #171717 !important;
+    border-color: transparent !important;
+    font-weight: 700 !important;
+}
+
+#jpps-potplayer-button:hover,
+#jpps-potplayer-button:focus-visible {
+    background: #ffd21a !important;
+    color: #171717 !important;
+    filter: brightness(1.04);
+}
+
+#jpps-potplayer-button:focus-visible {
+    outline: 2px solid #ffffff !important;
+    outline-offset: 2px !important;
+}
+
+#jpps-potplayer-button .jpps-button-icon {
+    font-size: 0.9em;
+    line-height: 1;
+}
