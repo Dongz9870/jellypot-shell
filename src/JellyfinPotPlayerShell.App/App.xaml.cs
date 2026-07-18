@@ -5,6 +5,7 @@ using System.Net.Http;
 using JellyfinPotPlayerShell.App.Logging;
 using JellyfinPotPlayerShell.App.Services;
 using JellyfinPotPlayerShell.Core.Jellyfin;
+using JellyfinPotPlayerShell.Core.Paths;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -76,6 +77,7 @@ public partial class App : Application
         builder.Services.AddSingleton<IWebViewHostService, WebViewHostService>();
         builder.Services.AddSingleton<IPotPlayerLocator, PotPlayerLocator>();
         builder.Services.AddSingleton<IPotPlayerService, PotPlayerService>();
+        builder.Services.AddSingleton<PathMappingService>();
         builder.Services.AddHttpClient<JellyfinApiService>(client =>
         {
             client.Timeout = TimeSpan.FromSeconds(15);

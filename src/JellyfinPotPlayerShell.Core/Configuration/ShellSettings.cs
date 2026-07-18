@@ -5,6 +5,8 @@ public sealed class ShellSettings
     public JellyfinSettings Jellyfin { get; set; } = new();
 
     public PlayerSettings Player { get; set; } = new();
+
+    public List<PathMappingRule> PathMappings { get; set; } = new();
 }
 
 public sealed class JellyfinSettings
@@ -17,4 +19,29 @@ public sealed class PlayerSettings
     public string PotPlayerPath { get; set; } = string.Empty;
 
     public bool AutoDetect { get; set; } = true;
+}
+
+public sealed class PathMappingRule
+{
+    public string Id { get; set; } = Guid.NewGuid().ToString("N");
+
+    public bool Enabled { get; set; } = true;
+
+    public string Description { get; set; } = string.Empty;
+
+    public string ServerPrefix { get; set; } = string.Empty;
+
+    public string WindowsPrefix { get; set; } = string.Empty;
+
+    public PathMappingRule Clone()
+    {
+        return new PathMappingRule
+        {
+            Id = Id,
+            Enabled = Enabled,
+            Description = Description,
+            ServerPrefix = ServerPrefix,
+            WindowsPrefix = WindowsPrefix
+        };
+    }
 }

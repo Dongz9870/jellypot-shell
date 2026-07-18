@@ -1,7 +1,10 @@
+using System.Collections.ObjectModel;
 using System.IO;
 using System.Windows;
+using System.Windows.Controls;
 using JellyfinPotPlayerShell.App.Services;
 using JellyfinPotPlayerShell.Core.Configuration;
+using JellyfinPotPlayerShell.Core.Paths;
 using JellyfinPotPlayerShell.Core.Playback;
 using Microsoft.Extensions.Logging;
 using Microsoft.Win32;
@@ -13,6 +16,7 @@ public partial class SettingsWindow : Window
     private readonly ISettingsService _settingsService;
     private readonly IPotPlayerLocator _potPlayerLocator;
     private readonly ILogger<SettingsWindow> _logger;
+    private readonly ObservableCollection<PathMappingRule> _pathMappings;
 
     public SettingsWindow(
         ISettingsService settingsService,
@@ -27,6 +31,9 @@ public partial class SettingsWindow : Window
         ServerUrlTextBox.Text = _settingsService.Current.Jellyfin.ServerUrl;
         PotPlayerPathTextBox.Text = _settingsService.Current.Player.PotPlayerPath;
         AutoDetectCheckBox.IsChecked = _settingsService.Current.Player.AutoDetect;
+        _pathMappings = new ObservableCollection<PathMappingRule>(
+            _settingsService.Current.PathMappings.Select(rule => rule.Clone()));
+        PathMappingsGrid.ItemsSource = _pathMappings;
         ServerUrlTextBox.SelectAll();
         ServerUrlTextBox.Focus();
     }
@@ -78,9 +85,33 @@ public partial class SettingsWindow : Window
         PotPlayerPathTextBox.Text = normalizedPath;
     }
 
+    private void AddPathMappingButton_Click(object sender, RoutedEventArgs e)
+    {
+        ValidationText.Text = string.Empty;
+        var rule = new PathMappingRule
+        {
+            Description = "新规则"
+        };
+        _pathMappings.Add(rule);
+        PathMappingsGrid.SelectedItem = rule;
+        PathMappingsGrid.ScrollIntoView(rule);
+        PathMappingsGrid.BeginEdit();
+    }
+
+    private void DeletePathMappingButton_Click(object sender, RoutedEventArgs e)
+    {
+        ValidationText.Text = string.Empty;
+        if (PathMappingsGrid.SelectedItem is PathMappingRule selectedRule)
+        {
+            _pathMappings.Remove(selectedRule);
+        }
+    }
+
     private async void SaveButton_Click(object sender, RoutedEventArgs e)
     {
         ValidationText.Text = string.Empty;
+        PathMappingsGrid.CommitEdit(DataGridEditingUnit.Cell, true);
+        PathMappingsGrid.CommitEdit(DataGridEditingUnit.Row, true);
 
         if (!JellyfinServerUrl.TryNormalize(
                 ServerUrlTextBox.Text,
@@ -98,13 +129,30 @@ public partial class SettingsWindow : Window
             return;
         }
 
+        foreach (var rule in _pathMappings)
+        {
+            if (PathMappingService.TryValidateRule(rule, out var mappingError))
+            {
+                continue;
+            }
+
+            var ruleName = string.IsNullOrWhiteSpace(rule.Description)
+                ? rule.Id
+                : rule.Description;
+            ValidationText.Text = $"路径映射“{ruleName}”：{mappingError}";
+            PathMappingsGrid.SelectedItem = rule;
+            PathMappingsGrid.ScrollIntoView(rule);
+            return;
+        }
+
         try
         {
             SaveButton.IsEnabled = false;
             await _settingsService.SaveAsync(
                 normalizedServerUrl,
                 PotPlayerPathTextBox.Text,
-                AutoDetectCheckBox.IsChecked == true);
+                AutoDetectCheckBox.IsChecked == true,
+                _pathMappings.ToArray());
             DialogResult = true;
         }
         catch (Exception exception)

@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.IO;
 using JellyfinPotPlayerShell.Core.Configuration;
+using JellyfinPotPlayerShell.Core.Paths;
 using JellyfinPotPlayerShell.Core.Playback;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -68,6 +69,10 @@ public sealed class JsonSettingsService : ISettingsService
                     : string.Empty;
             }
 
+            settings.PathMappings = PreparePathMappings(
+                settings.PathMappings ?? new List<PathMappingRule>(),
+                validate: false);
+
             Current = settings;
             _logger.LogInformation("用户设置加载完成");
         }
@@ -83,6 +88,7 @@ public sealed class JsonSettingsService : ISettingsService
         string serverUrl,
         string potPlayerPath,
         bool autoDetect,
+        IReadOnlyList<PathMappingRule> pathMappings,
         CancellationToken cancellationToken = default)
     {
         if (!JellyfinServerUrl.TryNormalize(serverUrl, out var normalized, out var error))
@@ -110,7 +116,8 @@ public sealed class JsonSettingsService : ISettingsService
             {
                 PotPlayerPath = normalizedPlayerPath,
                 AutoDetect = autoDetect
-            }
+            },
+            PathMappings = PreparePathMappings(pathMappings, validate: true)
         };
 
         return SaveSettingsAsync(settings, cancellationToken);
@@ -138,7 +145,10 @@ public sealed class JsonSettingsService : ISettingsService
             {
                 PotPlayerPath = normalizedPlayerPath,
                 AutoDetect = Current.Player.AutoDetect
-            }
+            },
+            PathMappings = PreparePathMappings(
+                Current.PathMappings,
+                validate: false)
         };
 
         return SaveSettingsAsync(settings, cancellationToken);
@@ -197,8 +207,64 @@ public sealed class JsonSettingsService : ISettingsService
             {
                 PotPlayerPath = string.Empty,
                 AutoDetect = true
-            }
+            },
+            PathMappings = new List<PathMappingRule>()
         };
+    }
+
+    private static List<PathMappingRule> PreparePathMappings(
+        IEnumerable<PathMappingRule>? pathMappings,
+        bool validate)
+    {
+        var prepared = new List<PathMappingRule>();
+        var usedIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var sourceRule in pathMappings ?? Array.Empty<PathMappingRule>())
+        {
+            if (sourceRule is null)
+            {
+                continue;
+            }
+
+            var rule = new PathMappingRule
+            {
+                Id = sourceRule.Id?.Trim() ?? string.Empty,
+                Enabled = sourceRule.Enabled,
+                Description = sourceRule.Description?.Trim() ?? string.Empty,
+                ServerPrefix = sourceRule.ServerPrefix?.Trim().Trim('"') ?? string.Empty,
+                WindowsPrefix = sourceRule.WindowsPrefix?.Trim().Trim('"') ?? string.Empty
+            };
+
+            if (rule.Id.Length == 0 || !usedIds.Add(rule.Id))
+            {
+                do
+                {
+                    rule.Id = Guid.NewGuid().ToString("N");
+                }
+                while (!usedIds.Add(rule.Id));
+            }
+
+            if (validate &&
+                !PathMappingService.TryValidateRule(rule, out var mappingError))
+            {
+                var ruleName = string.IsNullOrWhiteSpace(rule.Description)
+                    ? rule.Id
+                    : rule.Description;
+                throw new ArgumentException(
+                    $"路径映射“{ruleName}”：{mappingError}",
+                    nameof(pathMappings));
+            }
+
+            if (!validate &&
+                !PathMappingService.TryValidateRule(rule, out _))
+            {
+                rule.Enabled = false;
+            }
+
+            prepared.Add(rule);
+        }
+
+        return prepared;
     }
 
     private void BackupBrokenSettings()

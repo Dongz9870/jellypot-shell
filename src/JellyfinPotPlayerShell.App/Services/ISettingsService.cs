@@ -12,6 +12,7 @@ public interface ISettingsService
         string serverUrl,
         string potPlayerPath,
         bool autoDetect,
+        IReadOnlyList<PathMappingRule> pathMappings,
         CancellationToken cancellationToken = default);
 
     Task SavePotPlayerPathAsync(

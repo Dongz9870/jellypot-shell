@@ -1,6 +1,7 @@
 using System.Windows;
 using JellyfinPotPlayerShell.App.Services;
 using JellyfinPotPlayerShell.Core.Jellyfin;
+using JellyfinPotPlayerShell.Core.Paths;
 using JellyfinPotPlayerShell.Core.Playback;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -20,6 +21,7 @@ public partial class MainWindow : Window
     private readonly JellyfinApiService _jellyfinApiService;
     private readonly IPotPlayerLocator _potPlayerLocator;
     private readonly IPotPlayerService _potPlayerService;
+    private readonly PathMappingService _pathMappingService;
     private readonly ILogger<MainWindow> _logger;
     private bool _webViewReady;
     private bool _isResolvingMedia;
@@ -31,6 +33,7 @@ public partial class MainWindow : Window
         JellyfinApiService jellyfinApiService,
         IPotPlayerLocator potPlayerLocator,
         IPotPlayerService potPlayerService,
+        PathMappingService pathMappingService,
         ILogger<MainWindow> logger)
     {
         _serviceProvider = serviceProvider;
@@ -39,6 +42,7 @@ public partial class MainWindow : Window
         _jellyfinApiService = jellyfinApiService;
         _potPlayerLocator = potPlayerLocator;
         _potPlayerService = potPlayerService;
+        _pathMappingService = pathMappingService;
         _logger = logger;
 
         InitializeComponent();
@@ -160,6 +164,23 @@ public partial class MainWindow : Window
             }
 
             var isHdr = HdrMediaDetector.IsHdr(item, selectedMedia.Source);
+            var pathMapping = _pathMappingService.Map(
+                selectedMedia.Path,
+                _settingsService.Current.PathMappings);
+            if (pathMapping.IsMapped)
+            {
+                _logger.LogInformation(
+                    "已应用路径映射规则 {RuleId}，路径长度 {SourceLength} -> {MappedLength}",
+                    pathMapping.RuleId,
+                    pathMapping.SourcePath.Length,
+                    pathMapping.MappedPath.Length);
+            }
+            else
+            {
+                _logger.LogInformation(
+                    "未应用路径映射规则，媒体路径长度 {PathLength}",
+                    pathMapping.SourcePath.Length);
+            }
 
             var playerPath = await ResolvePlayerPathAsync();
             if (playerPath is null)
@@ -175,9 +196,11 @@ public partial class MainWindow : Window
                 await Task.Delay(TimeSpan.FromMilliseconds(1200));
             }
 
-            StatusText.Text = "正在检查媒体路径并启动 PotPlayer";
+            StatusText.Text = pathMapping.IsMapped
+                ? "正在检查映射后的媒体路径并启动 PotPlayer"
+                : "正在检查媒体路径并启动 PotPlayer";
             await Task.Run(() =>
-                _potPlayerService.PlayAsync(playerPath, selectedMedia.Path));
+                _potPlayerService.PlayAsync(playerPath, pathMapping.MappedPath));
             _logger.LogInformation("PotPlayer 已成功启动");
             StatusText.Text = "已交给 PotPlayer 播放";
         }
