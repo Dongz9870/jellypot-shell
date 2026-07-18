@@ -131,6 +131,14 @@
                                 Padding="16,4"
                                 Content="删除选中规则"
                                 Click="DeletePathMappingButton_Click" />
+                        <Button Margin="8,0,0,0"
+                                Padding="16,4"
+                                Content="重新运行新手向导"
+                                Click="RunSetupWizardButton_Click" />
+                        <Button Margin="8,0,0,0"
+                                Padding="16,4"
+                                Content="断开本程序创建的盘符"
+                                Click="DisconnectManagedDrivesButton_Click" />
                     </StackPanel>
                 </Grid>
             </TabItem>

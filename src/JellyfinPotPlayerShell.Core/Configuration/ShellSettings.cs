@@ -7,6 +7,10 @@ public sealed class ShellSettings
     public PlayerSettings Player { get; set; } = new();
 
     public List<PathMappingRule> PathMappings { get; set; } = new();
+
+    public bool SetupCompleted { get; set; }
+
+    public List<ManagedNetworkDrive> ManagedNetworkDrives { get; set; } = new();
 }
 
 public sealed class JellyfinSettings
@@ -42,6 +46,22 @@ public sealed class PathMappingRule
             Description = Description,
             ServerPrefix = ServerPrefix,
             WindowsPrefix = WindowsPrefix
+        };
+    }
+}
+
+public sealed class ManagedNetworkDrive
+{
+    public string DriveLetter { get; set; } = string.Empty;
+
+    public string RemotePath { get; set; } = string.Empty;
+
+    public ManagedNetworkDrive Clone()
+    {
+        return new ManagedNetworkDrive
+        {
+            DriveLetter = DriveLetter,
+            RemotePath = RemotePath
         };
     }
 }

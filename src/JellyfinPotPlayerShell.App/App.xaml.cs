@@ -5,6 +5,7 @@ using System.Net.Http;
 using JellyfinPotPlayerShell.App.Logging;
 using JellyfinPotPlayerShell.App.Services;
 using JellyfinPotPlayerShell.Core.Jellyfin;
+using JellyfinPotPlayerShell.Core.Networking;
 using JellyfinPotPlayerShell.Core.Paths;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -30,6 +31,12 @@ public partial class App : Application
 
             var settingsService = _host.Services.GetRequiredService<ISettingsService>();
             await settingsService.LoadAsync();
+
+            if (!settingsService.Current.SetupCompleted)
+            {
+                var setupWizard = _host.Services.GetRequiredService<SetupWizardWindow>();
+                setupWizard.ShowDialog();
+            }
 
             var mainWindow = _host.Services.GetRequiredService<MainWindow>();
             MainWindow = mainWindow;
@@ -78,6 +85,15 @@ public partial class App : Application
         builder.Services.AddSingleton<IPotPlayerLocator, PotPlayerLocator>();
         builder.Services.AddSingleton<IPotPlayerService, PotPlayerService>();
         builder.Services.AddSingleton<PathMappingService>();
+        builder.Services.AddSingleton<INetworkDriveService, WindowsNetworkDriveService>();
+        builder.Services.AddSingleton<NasPathProbeService>();
+        builder.Services.AddHttpClient<JellyfinServerDetector>(client =>
+        {
+            client.Timeout = TimeSpan.FromSeconds(5);
+        }).ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+        {
+            AllowAutoRedirect = false
+        });
         builder.Services.AddHttpClient<JellyfinApiService>(client =>
         {
             client.Timeout = TimeSpan.FromSeconds(15);
@@ -87,6 +103,7 @@ public partial class App : Application
         });
         builder.Services.AddSingleton<MainWindow>();
         builder.Services.AddTransient<SettingsWindow>();
+        builder.Services.AddTransient<SetupWizardWindow>();
 
         return builder.Build();
     }

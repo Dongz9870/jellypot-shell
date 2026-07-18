@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.IO;
 using JellyfinPotPlayerShell.Core.Configuration;
+using JellyfinPotPlayerShell.Core.Networking;
 using JellyfinPotPlayerShell.Core.Paths;
 using JellyfinPotPlayerShell.Core.Playback;
 using Microsoft.Extensions.Configuration;
@@ -72,6 +73,8 @@ public sealed class JsonSettingsService : ISettingsService
             settings.PathMappings = PreparePathMappings(
                 settings.PathMappings ?? new List<PathMappingRule>(),
                 validate: false);
+            settings.ManagedNetworkDrives = PrepareManagedNetworkDrives(
+                settings.ManagedNetworkDrives);
 
             Current = settings;
             _logger.LogInformation("用户设置加载完成");
@@ -91,35 +94,13 @@ public sealed class JsonSettingsService : ISettingsService
         IReadOnlyList<PathMappingRule> pathMappings,
         CancellationToken cancellationToken = default)
     {
-        if (!JellyfinServerUrl.TryNormalize(serverUrl, out var normalized, out var error))
-        {
-            throw new ArgumentException(error, nameof(serverUrl));
-        }
-
-        var normalizedPlayerPath = string.Empty;
-        if (!string.IsNullOrWhiteSpace(potPlayerPath) &&
-            !PotPlayerExecutable.TryValidate(
-                potPlayerPath,
-                out normalizedPlayerPath,
-                out var playerError))
-        {
-            throw new ArgumentException(playerError, nameof(potPlayerPath));
-        }
-
-        var settings = new ShellSettings
-        {
-            Jellyfin = new JellyfinSettings
-            {
-                ServerUrl = normalized
-            },
-            Player = new PlayerSettings
-            {
-                PotPlayerPath = normalizedPlayerPath,
-                AutoDetect = autoDetect
-            },
-            PathMappings = PreparePathMappings(pathMappings, validate: true)
-        };
-
+        var settings = CreateValidatedSettings(
+            serverUrl,
+            potPlayerPath,
+            autoDetect,
+            pathMappings,
+            Current.SetupCompleted,
+            Current.ManagedNetworkDrives);
         return SaveSettingsAsync(settings, cancellationToken);
     }
 
@@ -148,9 +129,44 @@ public sealed class JsonSettingsService : ISettingsService
             },
             PathMappings = PreparePathMappings(
                 Current.PathMappings,
-                validate: false)
+                validate: false),
+            SetupCompleted = Current.SetupCompleted,
+            ManagedNetworkDrives = PrepareManagedNetworkDrives(
+                Current.ManagedNetworkDrives)
         };
 
+        return SaveSettingsAsync(settings, cancellationToken);
+    }
+
+    public Task CompleteSetupAsync(
+        string serverUrl,
+        string potPlayerPath,
+        IReadOnlyList<PathMappingRule> pathMappings,
+        IReadOnlyList<ManagedNetworkDrive> managedNetworkDrives,
+        CancellationToken cancellationToken = default)
+    {
+        var settings = CreateValidatedSettings(
+            serverUrl,
+            potPlayerPath,
+            true,
+            pathMappings,
+            true,
+            managedNetworkDrives);
+        return SaveSettingsAsync(settings, cancellationToken);
+    }
+
+    public Task SaveNetworkDriveStateAsync(
+        IReadOnlyList<PathMappingRule> pathMappings,
+        IReadOnlyList<ManagedNetworkDrive> managedNetworkDrives,
+        CancellationToken cancellationToken = default)
+    {
+        var settings = CreateValidatedSettings(
+            Current.Jellyfin.ServerUrl,
+            Current.Player.PotPlayerPath,
+            Current.Player.AutoDetect,
+            pathMappings,
+            Current.SetupCompleted,
+            managedNetworkDrives);
         return SaveSettingsAsync(settings, cancellationToken);
     }
 
@@ -208,7 +224,53 @@ public sealed class JsonSettingsService : ISettingsService
                 PotPlayerPath = string.Empty,
                 AutoDetect = true
             },
-            PathMappings = new List<PathMappingRule>()
+            PathMappings = new List<PathMappingRule>(),
+            SetupCompleted = false,
+            ManagedNetworkDrives = new List<ManagedNetworkDrive>()
+        };
+    }
+
+    private static ShellSettings CreateValidatedSettings(
+        string serverUrl,
+        string potPlayerPath,
+        bool autoDetect,
+        IReadOnlyList<PathMappingRule> pathMappings,
+        bool setupCompleted,
+        IReadOnlyList<ManagedNetworkDrive> managedNetworkDrives)
+    {
+        if (!JellyfinServerUrl.TryNormalize(
+                serverUrl,
+                out var normalizedServerUrl,
+                out var serverError))
+        {
+            throw new ArgumentException(serverError, nameof(serverUrl));
+        }
+
+        var normalizedPlayerPath = string.Empty;
+        if (!string.IsNullOrWhiteSpace(potPlayerPath) &&
+            !PotPlayerExecutable.TryValidate(
+                potPlayerPath,
+                out normalizedPlayerPath,
+                out var playerError))
+        {
+            throw new ArgumentException(playerError, nameof(potPlayerPath));
+        }
+
+        return new ShellSettings
+        {
+            Jellyfin = new JellyfinSettings
+            {
+                ServerUrl = normalizedServerUrl
+            },
+            Player = new PlayerSettings
+            {
+                PotPlayerPath = normalizedPlayerPath,
+                AutoDetect = autoDetect
+            },
+            PathMappings = PreparePathMappings(pathMappings, validate: true),
+            SetupCompleted = setupCompleted,
+            ManagedNetworkDrives = PrepareManagedNetworkDrives(
+                managedNetworkDrives)
         };
     }
 
@@ -262,6 +324,38 @@ public sealed class JsonSettingsService : ISettingsService
             }
 
             prepared.Add(rule);
+        }
+
+        return prepared;
+    }
+
+    private static List<ManagedNetworkDrive> PrepareManagedNetworkDrives(
+        IEnumerable<ManagedNetworkDrive>? managedNetworkDrives)
+    {
+        var prepared = new List<ManagedNetworkDrive>();
+        var usedDriveLetters = new HashSet<string>(
+            StringComparer.OrdinalIgnoreCase);
+
+        foreach (var managedDrive in
+                 managedNetworkDrives ?? Array.Empty<ManagedNetworkDrive>())
+        {
+            if (managedDrive is null ||
+                !NetworkDriveDefinition.TryCreate(
+                    managedDrive.DriveLetter,
+                    managedDrive.RemotePath,
+                    out var definition,
+                    out _) ||
+                definition is null ||
+                !usedDriveLetters.Add(definition.DriveName))
+            {
+                continue;
+            }
+
+            prepared.Add(new ManagedNetworkDrive
+            {
+                DriveLetter = definition.DriveName,
+                RemotePath = definition.RemotePath
+            });
         }
 
         return prepared;

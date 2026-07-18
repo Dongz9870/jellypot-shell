@@ -18,4 +18,16 @@ public interface ISettingsService
     Task SavePotPlayerPathAsync(
         string potPlayerPath,
         CancellationToken cancellationToken = default);
+
+    Task CompleteSetupAsync(
+        string serverUrl,
+        string potPlayerPath,
+        IReadOnlyList<PathMappingRule> pathMappings,
+        IReadOnlyList<ManagedNetworkDrive> managedNetworkDrives,
+        CancellationToken cancellationToken = default);
+
+    Task SaveNetworkDriveStateAsync(
+        IReadOnlyList<PathMappingRule> pathMappings,
+        IReadOnlyList<ManagedNetworkDrive> managedNetworkDrives,
+        CancellationToken cancellationToken = default);
 }

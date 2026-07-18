@@ -4,9 +4,11 @@ using System.Windows;
 using System.Windows.Controls;
 using JellyfinPotPlayerShell.App.Services;
 using JellyfinPotPlayerShell.Core.Configuration;
+using JellyfinPotPlayerShell.Core.Networking;
 using JellyfinPotPlayerShell.Core.Paths;
 using JellyfinPotPlayerShell.Core.Playback;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Win32;
 
 namespace JellyfinPotPlayerShell.App;
@@ -15,16 +17,22 @@ public partial class SettingsWindow : Window
 {
     private readonly ISettingsService _settingsService;
     private readonly IPotPlayerLocator _potPlayerLocator;
+    private readonly INetworkDriveService _networkDriveService;
+    private readonly IServiceProvider _serviceProvider;
     private readonly ILogger<SettingsWindow> _logger;
     private readonly ObservableCollection<PathMappingRule> _pathMappings;
 
     public SettingsWindow(
         ISettingsService settingsService,
         IPotPlayerLocator potPlayerLocator,
+        INetworkDriveService networkDriveService,
+        IServiceProvider serviceProvider,
         ILogger<SettingsWindow> logger)
     {
         _settingsService = settingsService;
         _potPlayerLocator = potPlayerLocator;
+        _networkDriveService = networkDriveService;
+        _serviceProvider = serviceProvider;
         _logger = logger;
 
         InitializeComponent();
@@ -104,6 +112,112 @@ public partial class SettingsWindow : Window
         if (PathMappingsGrid.SelectedItem is PathMappingRule selectedRule)
         {
             _pathMappings.Remove(selectedRule);
+        }
+    }
+
+    private void RunSetupWizardButton_Click(object sender, RoutedEventArgs e)
+    {
+        ValidationText.Text = string.Empty;
+        var wizard = _serviceProvider.GetRequiredService<SetupWizardWindow>();
+        wizard.Owner = this;
+        if (wizard.ShowDialog() != true)
+        {
+            return;
+        }
+
+        ServerUrlTextBox.Text = _settingsService.Current.Jellyfin.ServerUrl;
+        PotPlayerPathTextBox.Text = _settingsService.Current.Player.PotPlayerPath;
+        AutoDetectCheckBox.IsChecked = _settingsService.Current.Player.AutoDetect;
+        ReloadPathMappings();
+        ValidationText.Text = "新手向导设置已应用。";
+    }
+
+    private async void DisconnectManagedDrivesButton_Click(
+        object sender,
+        RoutedEventArgs e)
+    {
+        ValidationText.Text = string.Empty;
+        var managedDrives = _settingsService.Current.ManagedNetworkDrives
+            .Select(drive => drive.Clone())
+            .ToList();
+        if (managedDrives.Count == 0)
+        {
+            ValidationText.Text = "当前没有由本程序创建的网络盘。";
+            return;
+        }
+
+        var confirmation = MessageBox.Show(
+            this,
+            "仅断开由本程序创建并记录的网络盘，不会删除或移动任何媒体文件。是否继续？",
+            "断开网络盘",
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Question);
+        if (confirmation != MessageBoxResult.Yes)
+        {
+            return;
+        }
+
+        PathMappingsGrid.CommitEdit(DataGridEditingUnit.Cell, true);
+        PathMappingsGrid.CommitEdit(DataGridEditingUnit.Row, true);
+        foreach (var rule in _pathMappings)
+        {
+            if (!PathMappingService.TryValidateRule(rule, out var mappingError))
+            {
+                ValidationText.Text = $"请先修正路径映射：{mappingError}";
+                PathMappingsGrid.SelectedItem = rule;
+                PathMappingsGrid.ScrollIntoView(rule);
+                return;
+            }
+        }
+
+        var failures = new List<string>();
+
+        foreach (var drive in managedDrives.ToArray())
+        {
+            var result = await Task.Run(() => _networkDriveService.Disconnect(
+                drive.DriveLetter,
+                drive.RemotePath));
+            if (!result.Succeeded)
+            {
+                failures.Add(result.Message);
+                continue;
+            }
+
+            managedDrives.Remove(drive);
+            for (var index = _pathMappings.Count - 1; index >= 0; index--)
+            {
+                if (string.Equals(
+                        _pathMappings[index].WindowsPrefix.TrimEnd('\\', '/'),
+                        drive.DriveLetter,
+                        StringComparison.OrdinalIgnoreCase))
+                {
+                    _pathMappings.RemoveAt(index);
+                }
+            }
+        }
+
+        try
+        {
+            await _settingsService.SaveNetworkDriveStateAsync(
+                _pathMappings.ToArray(),
+                managedDrives);
+            ValidationText.Text = failures.Count == 0
+                ? "本程序创建的网络盘已断开。"
+                : string.Join(Environment.NewLine, failures);
+        }
+        catch (Exception exception)
+        {
+            _logger.LogError(exception, "保存网络盘断开状态失败");
+            ValidationText.Text = $"网络盘状态保存失败：{exception.Message}";
+        }
+    }
+
+    private void ReloadPathMappings()
+    {
+        _pathMappings.Clear();
+        foreach (var rule in _settingsService.Current.PathMappings)
+        {
+            _pathMappings.Add(rule.Clone());
         }
     }
 
