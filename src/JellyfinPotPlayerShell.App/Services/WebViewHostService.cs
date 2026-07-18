@@ -73,7 +73,7 @@ public sealed class WebViewHostService : IWebViewHostService
         _logger.LogInformation("已收到有效的 PotPlayer 按钮请求");
         PlayRequested?.Invoke(
             this,
-            new PlayRequestReceivedEventArgs(message.ItemId));
+            new PlayRequestReceivedEventArgs(message));
     }
 
     private bool IsConfiguredJellyfinOrigin(string source)

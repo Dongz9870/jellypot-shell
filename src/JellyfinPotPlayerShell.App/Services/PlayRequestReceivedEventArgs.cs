@@ -1,11 +1,13 @@
+using JellyfinPotPlayerShell.Core.Messaging;
+
 namespace JellyfinPotPlayerShell.App.Services;
 
 public sealed class PlayRequestReceivedEventArgs : EventArgs
 {
-    public PlayRequestReceivedEventArgs(string itemId)
+    public PlayRequestReceivedEventArgs(PlayRequestMessage request)
     {
-        ItemId = itemId;
+        Request = request;
     }
 
-    public string ItemId { get; }
+    public PlayRequestMessage Request { get; }
 }

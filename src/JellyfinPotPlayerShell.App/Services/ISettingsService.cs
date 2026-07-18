@@ -8,5 +8,13 @@ public interface ISettingsService
 
     Task LoadAsync(CancellationToken cancellationToken = default);
 
-    Task SaveServerUrlAsync(string serverUrl, CancellationToken cancellationToken = default);
+    Task SaveAsync(
+        string serverUrl,
+        string potPlayerPath,
+        bool autoDetect,
+        CancellationToken cancellationToken = default);
+
+    Task SavePotPlayerPathAsync(
+        string potPlayerPath,
+        CancellationToken cancellationToken = default);
 }

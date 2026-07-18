@@ -41,7 +41,7 @@ public sealed class WebAssetContractTests
     }
 
     [Fact]
-    public void M3Assets_SendOnlyTheExpectedItemIdMessage()
+    public void M4Assets_SendOnlyTheExpectedItemAndSessionMessage()
     {
         var scripts = string.Join(
             Environment.NewLine,
@@ -51,10 +51,11 @@ public sealed class WebAssetContractTests
         Assert.Contains("postMessage", scripts, StringComparison.Ordinal);
         Assert.Contains("type: \"playWithPotPlayer\"", scripts, StringComparison.Ordinal);
         Assert.Contains("itemId: context.itemId", scripts, StringComparison.Ordinal);
-        Assert.DoesNotContain("AccessToken", scripts, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("serverAddress: apiContext.serverAddress", scripts, StringComparison.Ordinal);
+        Assert.Contains("userId: apiContext.userId", scripts, StringComparison.Ordinal);
+        Assert.Contains("accessToken: apiContext.accessToken", scripts, StringComparison.Ordinal);
         Assert.DoesNotContain("executablePath", scripts, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("pageUrl", scripts, StringComparison.OrdinalIgnoreCase);
-        Assert.DoesNotContain("serverAddress", scripts, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("ProcessStartInfo", scripts, StringComparison.Ordinal);
     }
 

@@ -7,9 +7,15 @@ public static class WebBridgeMessageParser
 {
     public const string PlayMessageType = "playWithPotPlayer";
 
-    private const int MaximumMessageLength = 512;
+    private const int MaximumMessageLength = 8192;
+    private const int MaximumServerAddressLength = 2048;
+    private const int MaximumAccessTokenLength = 4096;
     private static readonly Regex ItemIdPattern = new(
         "^[a-fA-F0-9-]{16,64}$",
+        RegexOptions.CultureInvariant,
+        TimeSpan.FromMilliseconds(100));
+    private static readonly Regex AccessTokenPattern = new(
+        "^[A-Za-z0-9._~+/=-]+$",
         RegexOptions.CultureInvariant,
         TimeSpan.FromMilliseconds(100));
 
@@ -34,35 +40,58 @@ public static class WebBridgeMessageParser
 
             string? type = null;
             string? itemId = null;
+            string? serverAddress = null;
+            string? userId = null;
+            string? accessToken = null;
             var propertyNames = new HashSet<string>(StringComparer.Ordinal);
 
             foreach (var property in document.RootElement.EnumerateObject())
             {
                 if (!propertyNames.Add(property.Name) ||
-                    (property.Name != "type" && property.Name != "itemId") ||
+                    !IsAllowedProperty(property.Name) ||
                     property.Value.ValueKind != JsonValueKind.String)
                 {
                     return false;
                 }
 
-                if (property.Name == "type")
+                switch (property.Name)
                 {
-                    type = property.Value.GetString();
-                }
-                else
-                {
-                    itemId = property.Value.GetString();
+                    case "type":
+                        type = property.Value.GetString();
+                        break;
+                    case "itemId":
+                        itemId = property.Value.GetString();
+                        break;
+                    case "serverAddress":
+                        serverAddress = property.Value.GetString();
+                        break;
+                    case "userId":
+                        userId = property.Value.GetString();
+                        break;
+                    case "accessToken":
+                        accessToken = property.Value.GetString();
+                        break;
                 }
             }
 
             if (type != PlayMessageType ||
                 string.IsNullOrEmpty(itemId) ||
-                !ItemIdPattern.IsMatch(itemId))
+                !ItemIdPattern.IsMatch(itemId) ||
+                !IsValidServerAddress(serverAddress) ||
+                userId is null ||
+                (userId.Length > 0 && !ItemIdPattern.IsMatch(userId)) ||
+                accessToken is null ||
+                accessToken.Length > MaximumAccessTokenLength ||
+                (accessToken.Length > 0 && !AccessTokenPattern.IsMatch(accessToken)))
             {
                 return false;
             }
 
-            message = new PlayRequestMessage(itemId);
+            message = new PlayRequestMessage(
+                itemId,
+                serverAddress!,
+                userId,
+                accessToken);
             return true;
         }
         catch (JsonException)
@@ -73,5 +102,26 @@ public static class WebBridgeMessageParser
         {
             return false;
         }
+    }
+
+    private static bool IsAllowedProperty(string propertyName)
+    {
+        return propertyName is
+            "type" or
+            "itemId" or
+            "serverAddress" or
+            "userId" or
+            "accessToken";
+    }
+
+    private static bool IsValidServerAddress(string? serverAddress)
+    {
+        return !string.IsNullOrWhiteSpace(serverAddress) &&
+            serverAddress.Length <= MaximumServerAddressLength &&
+            Uri.TryCreate(serverAddress, UriKind.Absolute, out var uri) &&
+            (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps) &&
+            string.IsNullOrEmpty(uri.UserInfo) &&
+            string.IsNullOrEmpty(uri.Query) &&
+            string.IsNullOrEmpty(uri.Fragment);
     }
 }

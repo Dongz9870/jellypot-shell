@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.IO;
 using JellyfinPotPlayerShell.Core.Configuration;
+using JellyfinPotPlayerShell.Core.Playback;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
@@ -56,6 +57,17 @@ public sealed class JsonSettingsService : ISettingsService
             }
 
             settings.Jellyfin.ServerUrl = normalized;
+            settings.Player ??= new PlayerSettings();
+            if (!string.IsNullOrWhiteSpace(settings.Player.PotPlayerPath))
+            {
+                settings.Player.PotPlayerPath = PotPlayerExecutable.TryValidate(
+                    settings.Player.PotPlayerPath,
+                    out var normalizedPlayerPath,
+                    out _)
+                    ? normalizedPlayerPath
+                    : string.Empty;
+            }
+
             Current = settings;
             _logger.LogInformation("用户设置加载完成");
         }
@@ -67,11 +79,25 @@ public sealed class JsonSettingsService : ISettingsService
         }
     }
 
-    public async Task SaveServerUrlAsync(string serverUrl, CancellationToken cancellationToken = default)
+    public Task SaveAsync(
+        string serverUrl,
+        string potPlayerPath,
+        bool autoDetect,
+        CancellationToken cancellationToken = default)
     {
         if (!JellyfinServerUrl.TryNormalize(serverUrl, out var normalized, out var error))
         {
             throw new ArgumentException(error, nameof(serverUrl));
+        }
+
+        var normalizedPlayerPath = string.Empty;
+        if (!string.IsNullOrWhiteSpace(potPlayerPath) &&
+            !PotPlayerExecutable.TryValidate(
+                potPlayerPath,
+                out normalizedPlayerPath,
+                out var playerError))
+        {
+            throw new ArgumentException(playerError, nameof(potPlayerPath));
         }
 
         var settings = new ShellSettings
@@ -79,8 +105,49 @@ public sealed class JsonSettingsService : ISettingsService
             Jellyfin = new JellyfinSettings
             {
                 ServerUrl = normalized
+            },
+            Player = new PlayerSettings
+            {
+                PotPlayerPath = normalizedPlayerPath,
+                AutoDetect = autoDetect
             }
         };
+
+        return SaveSettingsAsync(settings, cancellationToken);
+    }
+
+    public Task SavePotPlayerPathAsync(
+        string potPlayerPath,
+        CancellationToken cancellationToken = default)
+    {
+        if (!PotPlayerExecutable.TryValidate(
+                potPlayerPath,
+                out var normalizedPlayerPath,
+                out var playerError))
+        {
+            throw new ArgumentException(playerError, nameof(potPlayerPath));
+        }
+
+        var settings = new ShellSettings
+        {
+            Jellyfin = new JellyfinSettings
+            {
+                ServerUrl = Current.Jellyfin.ServerUrl
+            },
+            Player = new PlayerSettings
+            {
+                PotPlayerPath = normalizedPlayerPath,
+                AutoDetect = Current.Player.AutoDetect
+            }
+        };
+
+        return SaveSettingsAsync(settings, cancellationToken);
+    }
+
+    private async Task SaveSettingsAsync(
+        ShellSettings settings,
+        CancellationToken cancellationToken)
+    {
 
         Directory.CreateDirectory(_settingsDirectory);
         var temporaryPath = _settingsPath + ".tmp";
@@ -101,7 +168,7 @@ public sealed class JsonSettingsService : ISettingsService
 
             File.Move(temporaryPath, _settingsPath, true);
             Current = settings;
-            _logger.LogInformation("Jellyfin 服务器设置已保存");
+            _logger.LogInformation("应用设置已保存");
         }
         finally
         {
@@ -125,6 +192,11 @@ public sealed class JsonSettingsService : ISettingsService
             Jellyfin = new JellyfinSettings
             {
                 ServerUrl = normalized
+            },
+            Player = new PlayerSettings
+            {
+                PotPlayerPath = string.Empty,
+                AutoDetect = true
             }
         };
     }

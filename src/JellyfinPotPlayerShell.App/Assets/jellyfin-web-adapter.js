@@ -123,6 +123,32 @@
             null;
     }
 
+    function readApiValue(apiClient, propertyName) {
+        const value = apiClient?.[propertyName];
+        try {
+            return typeof value === "function"
+                ? value.call(apiClient)
+                : value;
+        } catch {
+            return null;
+        }
+    }
+
+    function getApiContext() {
+        const apiClient = getApiClient();
+        return {
+            serverAddress:
+                readApiValue(apiClient, "serverAddress") ??
+                window.location.origin,
+            userId:
+                readApiValue(apiClient, "getCurrentUserId") ??
+                "",
+            accessToken:
+                readApiValue(apiClient, "accessToken") ??
+                ""
+        };
+    }
+
     async function requestItemType(itemId) {
         const apiClient = getApiClient();
         const userId = apiClient?.getCurrentUserId?.();
@@ -194,6 +220,7 @@
     }
 
     window.__jppsJellyfinAdapter = Object.freeze({
-        getPlayableDetailContext
+        getPlayableDetailContext,
+        getApiContext
     });
 })();

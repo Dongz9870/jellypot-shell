@@ -32,9 +32,13 @@
         label.textContent = "PotPlayer 播放";
 
         button.addEventListener("click", () => {
+            const apiContext = window.__jppsJellyfinAdapter.getApiContext();
             window.chrome.webview.postMessage({
                 type: "playWithPotPlayer",
-                itemId: context.itemId
+                itemId: context.itemId,
+                serverAddress: apiContext.serverAddress,
+                userId: apiContext.userId,
+                accessToken: apiContext.accessToken
             });
         });
 
