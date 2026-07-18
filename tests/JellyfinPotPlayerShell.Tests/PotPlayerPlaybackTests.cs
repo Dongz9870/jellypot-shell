@@ -40,6 +40,48 @@ public sealed class PotPlayerPlaybackTests : IDisposable
     }
 
     [Fact]
+    public void Create_BluRayRootDirectory_UsesBdmvIndexAsSingleArgument()
+    {
+        var bluRayRoot = Path.Combine(_temporaryDirectory, "Blu-ray Movie");
+        var bdmvDirectory = Path.Combine(bluRayRoot, "BDMV");
+        var indexPath = Path.Combine(bdmvDirectory, "index.bdmv");
+        Directory.CreateDirectory(bdmvDirectory);
+        File.WriteAllBytes(indexPath, Array.Empty<byte>());
+
+        var startInfo = PotPlayerStartInfoFactory.Create(_playerPath, bluRayRoot);
+
+        Assert.Equal(indexPath, Assert.Single(startInfo.ArgumentList));
+        Assert.Empty(startInfo.Arguments);
+    }
+
+    [Fact]
+    public void Create_BdmvDirectory_UsesIndexAsSingleArgument()
+    {
+        var bdmvDirectory = Path.Combine(_temporaryDirectory, "Disc", "BDMV");
+        var indexPath = Path.Combine(bdmvDirectory, "index.bdmv");
+        Directory.CreateDirectory(bdmvDirectory);
+        File.WriteAllBytes(indexPath, Array.Empty<byte>());
+
+        var startInfo = PotPlayerStartInfoFactory.Create(
+            _playerPath,
+            bdmvDirectory + Path.DirectorySeparatorChar);
+
+        Assert.Equal(indexPath, Assert.Single(startInfo.ArgumentList));
+    }
+
+    [Fact]
+    public void Create_DirectoryWithoutBdmvIndex_ShowsBluRayDiagnostic()
+    {
+        var mediaDirectory = Path.Combine(_temporaryDirectory, "Incomplete Disc");
+        Directory.CreateDirectory(mediaDirectory);
+
+        var exception = Assert.Throws<PotPlayerException>(() =>
+            PotPlayerStartInfoFactory.Create(_playerPath, mediaDirectory));
+
+        Assert.Contains(@"BDMV\index.bdmv", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Create_MissingMediaFile_IsRejectedBeforeLaunch()
     {
         var missingPath = Path.Combine(_temporaryDirectory, "missing.mkv");

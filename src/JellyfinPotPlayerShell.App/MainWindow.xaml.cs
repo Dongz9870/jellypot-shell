@@ -152,12 +152,14 @@ public partial class MainWindow : Window
                 "Jellyfin 媒体信息读取成功，媒体源数量：{MediaSourceCount}",
                 mediaSourceCount);
 
-            var mediaPath = SelectMediaPath(item);
-            if (mediaPath is null)
+            var selectedMedia = SelectMedia(item);
+            if (selectedMedia is null)
             {
                 StatusText.Text = "已取消 PotPlayer 播放";
                 return;
             }
+
+            var isHdr = HdrMediaDetector.IsHdr(item, selectedMedia.Source);
 
             var playerPath = await ResolvePlayerPathAsync();
             if (playerPath is null)
@@ -166,8 +168,16 @@ public partial class MainWindow : Window
                 return;
             }
 
+            if (isHdr)
+            {
+                await _webViewHostService.ShowHdrNoticeAsync();
+                _logger.LogInformation("已为 HDR 媒体显示观看提示");
+                await Task.Delay(TimeSpan.FromMilliseconds(1200));
+            }
+
             StatusText.Text = "正在检查媒体路径并启动 PotPlayer";
-            await Task.Run(() => _potPlayerService.PlayAsync(playerPath, mediaPath));
+            await Task.Run(() =>
+                _potPlayerService.PlayAsync(playerPath, selectedMedia.Path));
             _logger.LogInformation("PotPlayer 已成功启动");
             StatusText.Text = "已交给 PotPlayer 播放";
         }
@@ -211,7 +221,7 @@ public partial class MainWindow : Window
         }
     }
 
-    private string? SelectMediaPath(JellyfinMediaItem item)
+    private MediaSelection? SelectMedia(JellyfinMediaItem item)
     {
         var mediaSources = (item.MediaSources ?? Array.Empty<JellyfinMediaSource>())
             .Where(source => !string.IsNullOrWhiteSpace(source.Path))
@@ -219,21 +229,27 @@ public partial class MainWindow : Window
 
         if (mediaSources.Length == 0)
         {
-            return item.Path;
+            return string.IsNullOrWhiteSpace(item.Path)
+                ? null
+                : new MediaSelection(item.Path, null);
         }
 
         if (mediaSources.Length == 1)
         {
-            return mediaSources[0].Path;
+            return new MediaSelection(mediaSources[0].Path!, mediaSources[0]);
         }
 
         var selectionWindow = new MediaSourceSelectionWindow(mediaSources)
         {
             Owner = this
         };
-        return selectionWindow.ShowDialog() == true
-            ? selectionWindow.SelectedMediaSource?.Path
-            : null;
+        if (selectionWindow.ShowDialog() != true ||
+            selectionWindow.SelectedMediaSource is not { Path: { } selectedPath } selectedSource)
+        {
+            return null;
+        }
+
+        return new MediaSelection(selectedPath, selectedSource);
     }
 
     private async Task<string?> ResolvePlayerPathAsync()
@@ -331,4 +347,8 @@ public partial class MainWindow : Window
             MessageBoxButton.OK,
             MessageBoxImage.Error);
     }
+
+    private sealed record MediaSelection(
+        string Path,
+        JellyfinMediaSource? Source);
 }

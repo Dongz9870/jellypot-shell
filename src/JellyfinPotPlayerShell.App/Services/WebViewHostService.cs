@@ -24,6 +24,12 @@ public sealed class WebViewHostService : IWebViewHostService
 
     public event EventHandler<PlayRequestReceivedEventArgs>? PlayRequested;
 
+    public Task ShowHdrNoticeAsync()
+    {
+        _coreWebView?.PostWebMessageAsJson("""{"type":"showHdrNotice"}""");
+        return Task.CompletedTask;
+    }
+
     public async Task InitializeAsync(WebView2 webView)
     {
         var userDataFolder = Path.Combine(

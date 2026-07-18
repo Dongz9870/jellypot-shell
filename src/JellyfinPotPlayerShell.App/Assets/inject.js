@@ -6,11 +6,62 @@
     window.__jppsLoaded = true;
 
     const BUTTON_ID = "jpps-potplayer-button";
+    const HDR_NOTICE_ID = "jpps-hdr-notice";
     const FALLBACK_INTERVAL_MS = 1500;
     let updateQueued = false;
     let updateVersion = 0;
+    let hdrNoticeTimer = null;
+
+    function removeHdrNotice() {
+        if (hdrNoticeTimer !== null) {
+            window.clearTimeout(hdrNoticeTimer);
+            hdrNoticeTimer = null;
+        }
+
+        document.getElementById(HDR_NOTICE_ID)?.remove();
+    }
+
+    function showHdrNotice() {
+        removeHdrNotice();
+        const button = document.getElementById(BUTTON_ID);
+        if (!button || !document.body) return;
+
+        const notice = document.createElement("div");
+        notice.id = HDR_NOTICE_ID;
+        notice.setAttribute("role", "status");
+        notice.setAttribute("aria-live", "polite");
+
+        const title = document.createElement("strong");
+        title.textContent = "HDR 资源";
+        const message = document.createElement("span");
+        message.textContent = "建议开启屏幕 HDR 模式观看";
+        notice.append(title, message);
+        document.body.appendChild(notice);
+
+        const buttonBounds = button.getBoundingClientRect();
+        const noticeBounds = notice.getBoundingClientRect();
+        let left = buttonBounds.right + 12;
+        if (left + noticeBounds.width > window.innerWidth - 12) {
+            left = Math.max(12, buttonBounds.left - noticeBounds.width - 12);
+        }
+
+        const top = Math.min(
+            Math.max(
+                12,
+                buttonBounds.top +
+                    ((buttonBounds.height - noticeBounds.height) / 2)),
+            window.innerHeight - noticeBounds.height - 12);
+        notice.style.left = `${left}px`;
+        notice.style.top = `${top}px`;
+
+        window.requestAnimationFrame(() => {
+            notice.classList.add("jpps-hdr-notice-visible");
+        });
+        hdrNoticeTimer = window.setTimeout(removeHdrNotice, 8000);
+    }
 
     function removeButton() {
+        removeHdrNotice();
         document.getElementById(BUTTON_ID)?.remove();
     }
 
@@ -109,6 +160,11 @@
 
         window.addEventListener("popstate", queueUpdate);
         window.addEventListener("hashchange", queueUpdate);
+        window.chrome.webview.addEventListener("message", event => {
+            if (event.data?.type === "showHdrNotice") {
+                showHdrNotice();
+            }
+        });
         window.setInterval(queueUpdate, FALLBACK_INTERVAL_MS);
         queueUpdate();
     }

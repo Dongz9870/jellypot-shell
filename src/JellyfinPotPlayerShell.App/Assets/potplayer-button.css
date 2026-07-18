@@ -25,3 +25,31 @@
     font-size: 0.9em;
     line-height: 1;
 }
+
+#jpps-hdr-notice {
+    position: fixed;
+    z-index: 2147483647;
+    display: flex;
+    flex-direction: column;
+    gap: 0.2em;
+    max-width: 320px;
+    padding: 0.75em 1em;
+    border: 1px solid #f5c400;
+    border-radius: 8px;
+    background: rgba(23, 23, 23, 0.96);
+    color: #ffffff;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    opacity: 0;
+    transform: translateY(4px);
+    transition: opacity 140ms ease, transform 140ms ease;
+    pointer-events: none;
+}
+
+#jpps-hdr-notice strong {
+    color: #f5c400;
+}
+
+#jpps-hdr-notice.jpps-hdr-notice-visible {
+    opacity: 1;
+    transform: translateY(0);
+}

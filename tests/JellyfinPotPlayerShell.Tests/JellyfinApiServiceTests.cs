@@ -35,6 +35,11 @@ public sealed class JellyfinApiServiceTests
         Assert.Equal("source-1", source.Id);
         Assert.Equal("4K REMUX", source.Name);
         Assert.Equal(@"\\NAS-SERVER\Media\Movies\Film.mkv", source.Path);
+        var videoStream = Assert.Single(source.MediaStreams);
+        Assert.Equal("Video", videoStream.Type);
+        Assert.Equal("HDR", videoStream.VideoRange);
+        Assert.Equal("DOVIWithHDR10", videoStream.VideoRangeType);
+        Assert.True(HdrMediaDetector.IsHdr(item, source));
     }
 
     [Fact]
@@ -120,7 +125,19 @@ public sealed class JellyfinApiServiceTests
                   "Name": "4K REMUX",
                   "Path": "\\\\NAS-SERVER\\Media\\Movies\\Film.mkv",
                   "VideoType": "VideoFile",
-                  "Container": "mkv"
+                  "Container": "mkv",
+                  "MediaStreams": [
+                    {
+                      "Type": "Video",
+                      "VideoRange": "HDR",
+                      "VideoRangeType": "DOVIWithHDR10",
+                      "ColorTransfer": "smpte2084",
+                      "DvProfile": 8,
+                      "RpuPresentFlag": 1,
+                      "BlPresentFlag": 1,
+                      "DvBlSignalCompatibilityId": 1
+                    }
+                  ]
                 }
               ]
             }

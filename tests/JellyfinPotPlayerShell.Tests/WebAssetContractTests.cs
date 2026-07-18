@@ -41,6 +41,20 @@ public sealed class WebAssetContractTests
     }
 
     [Fact]
+    public void M55Assets_ShowHdrNoticeBesidePotPlayerButton()
+    {
+        var injection = ReadAsset("inject.js");
+        var css = ReadAsset("potplayer-button.css");
+
+        Assert.Contains("showHdrNotice", injection, StringComparison.Ordinal);
+        Assert.Contains("建议开启屏幕 HDR 模式观看", injection, StringComparison.Ordinal);
+        Assert.Contains("getBoundingClientRect", injection, StringComparison.Ordinal);
+        Assert.Contains("window.chrome.webview.addEventListener", injection, StringComparison.Ordinal);
+        Assert.Contains("#jpps-hdr-notice", css, StringComparison.Ordinal);
+        Assert.Contains("position: fixed", css, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public void M4Assets_SendOnlyTheExpectedItemAndSessionMessage()
     {
         var scripts = string.Join(
