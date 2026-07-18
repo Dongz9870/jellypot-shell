@@ -11,6 +11,62 @@
         MinWidth="900"
         MinHeight="600"
         WindowStartupLocation="CenterScreen">
+    <Window.Resources>
+        <Style x:Key="ToolbarIconButton" TargetType="Button">
+            <Setter Property="Width" Value="42" />
+            <Setter Property="Height" Value="38" />
+            <Setter Property="Margin" Value="3,0" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Foreground" Value="#E5E7EB" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="FontFamily" Value="Segoe Fluent Icons, Segoe MDL2 Assets" />
+            <Setter Property="FontSize" Value="20" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="ToolTipService.InitialShowDelay" Value="350" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="ButtonBorder"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="6">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="ButtonBorder"
+                                        Property="Background"
+                                        Value="#374151" />
+                                <Setter TargetName="ButtonBorder"
+                                        Property="BorderBrush"
+                                        Value="#4B5563" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="ButtonBorder"
+                                        Property="Background"
+                                        Value="#111827" />
+                            </Trigger>
+                            <Trigger Property="IsKeyboardFocused" Value="True">
+                                <Setter TargetName="ButtonBorder"
+                                        Property="BorderBrush"
+                                        Value="#F5C400" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="ButtonBorder"
+                                        Property="Opacity"
+                                        Value="0.45" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
     <Grid Background="#111827">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
@@ -21,11 +77,17 @@
             <DockPanel LastChildFill="True">
                 <Button x:Name="SettingsButton"
                         DockPanel.Dock="Right"
-                        Content="设置"
+                        Style="{StaticResource ToolbarIconButton}"
+                        Content="&#xE713;"
+                        ToolTip="设置"
+                        AutomationProperties.Name="设置"
                         Click="SettingsButton_Click" />
                 <Button x:Name="ReloadButton"
                         DockPanel.Dock="Right"
-                        Content="刷新"
+                        Style="{StaticResource ToolbarIconButton}"
+                        Content="&#xE72C;"
+                        ToolTip="刷新"
+                        AutomationProperties.Name="刷新"
                         Click="ReloadButton_Click" />
                 <TextBlock x:Name="StatusText"
                            Margin="8,0"

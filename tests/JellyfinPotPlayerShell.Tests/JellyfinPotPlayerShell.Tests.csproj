@@ -30,4 +30,25 @@
              CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Content Include="..\..\installer\JellyfinPotPlayerShell.iss"
+             Link="Installer\JellyfinPotPlayerShell.iss"
+             CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\installer\appsettings.example.json"
+             Link="Installer\appsettings.example.json"
+             CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\scripts\build-installer.ps1"
+             Link="Installer\build-installer.ps1"
+             CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\src\JellyfinPotPlayerShell.App\JellyfinPotPlayerShell.App.csproj"
+             Link="IconContract\JellyfinPotPlayerShell.App.csproj"
+             CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\src\JellyfinPotPlayerShell.App\App.xaml"
+             Link="IconContract\App.xaml"
+             CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\src\JellyfinPotPlayerShell.App\MainWindow.xaml"
+             Link="UiContract\MainWindow.xaml"
+             CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>

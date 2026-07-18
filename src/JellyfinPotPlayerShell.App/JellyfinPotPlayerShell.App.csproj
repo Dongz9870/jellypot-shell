@@ -4,6 +4,10 @@
     <OutputType>WinExe</OutputType>
     <TargetFramework>net8.0-windows</TargetFramework>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <AssemblyName>JellyfinPotPlayerShell</AssemblyName>
+    <Product>Jellyfin PotPlayer Shell</Product>
+    <Version>0.8.0</Version>
+    <ApplicationIcon>Assets\JellyPot.ico</ApplicationIcon>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
@@ -23,9 +27,10 @@
     <None Update="appsettings.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <Content Include="Assets\**\*">
+    <Content Include="Assets\**\*" Exclude="Assets\JellyPot.ico">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <Resource Include="Assets\JellyPot.ico" />
   </ItemGroup>
 
 </Project>
