@@ -1,6 +1,19 @@
+# JellyPot Shell
 # Jellyfin PotPlayer Shell
+**PotPlayer External Player for Jellyfin on Windows**
 
-一款面向 Windows 11 x64 的 Jellyfin 桌面外壳客户端：保留原版 Jellyfin Web 的浏览、搜索、海报墙和详情页，同时在可播放条目旁加入醒目的黄色 **“PotPlayer 播放”** 按钮，将 NAS 或本机上的原始媒体文件直接交给 PotPlayer。
+JellyPot Shell is an unofficial Windows client for Jellyfin that adds a
+yellow **PotPlayer Play** button beside Jellyfin's original play button.
+
+It lets PotPlayer directly open local hard-drive files, mapped network drives,
+and NAS SMB/UNC paths without sending the video through Jellyfin transcoding.
+
+JellyPot Shell 是一款非官方 Jellyfin Windows 客户端。
+它会在 Jellyfin 原播放按钮旁增加黄色的 **PotPlayer 播放**按钮，
+让 PotPlayer 直接读取本地硬盘、网络盘符或 NAS SMB 文件，
+无需使用 Jellyfin 视频转码。
+
+这是一款面向 Windows 11 x64 的 Jellyfin 桌面外壳客户端：保留原版 Jellyfin Web 的浏览、搜索、海报墙和详情页，同时在可播放条目旁加入醒目的黄色 **“PotPlayer 播放”** 按钮，将 NAS 或本机上的原始媒体文件直接交给 PotPlayer。
 
 > 当前版本：**v0.8.0** · 技术栈：**.NET 8 / WPF / WebView2** · 自动化测试：**135 项**
 
@@ -27,6 +40,20 @@ Jellyfin PotPlayer Shell 把这条链路封装成一个普通 Windows 应用：
 ```
 
 最终用户不需要安装浏览器扩展、导入注册表、编辑脚本或修改 Jellyfin 安装文件。
+
+## How to play Jellyfin movies with PotPlayer
+
+## Jellyfin 调用 PotPlayer 的工作原理
+
+## Jellyfin external player for Windows
+
+## Jellyfin NAS direct play without transcoding
+
+## Jellyfin 如何使用 PotPlayer 播放本地文件
+
+## JellyPot Shell 与 MPC-JF 的区别
+
+## PotPlayer 无法播放 Jellyfin 文件怎么办
 
 ## 主要功能
 
