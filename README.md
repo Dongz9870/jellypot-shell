@@ -251,8 +251,3 @@ docs/                            开发手册、测试计划及图片资源
 - PotPlayer 是独立的第三方媒体播放器，本项目及安装包不重新分发 PotPlayer。
 - 本项目与 Jellyfin 官方及 PotPlayer 官方不存在隶属、授权或背书关系。
 - 项目名称和界面中的相关商标归各自权利人所有，仅用于描述兼容性和功能用途。
-
-## 开发文档
-
-- [开发手册](docs/DEVELOPMENT_MANUAL.md)
-- [配置示例](config/appsettings.example.json)
